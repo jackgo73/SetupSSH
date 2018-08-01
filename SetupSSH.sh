@@ -119,9 +119,10 @@ echo "Platform: $platform " | tee -a $LOGFILE
 #!------------------------------------!#
 #          check reachable             #
 #!------------------------------------!#
-echo "---------------------------------------------" | tee -a $LOGFILE
+echo "+-------------------------------------------+" | tee -a $LOGFILE
+echo "|         Check host reachability           |" | tee -a $LOGFILE
+echo "+-------------------------------------------+" | tee -a $LOGFILE
 $PING -c 5 -w 5 $HOST                           | tee -a $LOGFILE
-echo "---------------------------------------------" | tee -a $LOGFILE
 if [ $? = 0 ]; then
 	echo "Remote host reachability check succeeded, $HOST are reachable" | tee -a $LOGFILE
 else
@@ -151,9 +152,10 @@ if [ $NEW_LOCAL_PAIR = true ]; then
     rm -f $PRIVATE_KEY                                               | tee -a $LOGFILE
     rm -f $PUBLIC_KEY                                                | tee -a $LOGFILE
     echo "Run ssh-keygen on local host with empty passphrase"        | tee -a $LOGFILE
-    echo "---------------------------------------------" | tee -a $LOGFILE
+    echo "+-------------------------------------------+" | tee -a $LOGFILE
+    echo "|               ssh-keygen                  |" | tee -a $LOGFILE
+    echo "+-------------------------------------------+" | tee -a $LOGFILE
     $SSH_KEYGEN -t $KEYTYPE -b $BITS -f $HOME/.ssh/${IDRSA} -N ''    | tee -a $LOGFILE
-    echo "---------------------------------------------" | tee -a $LOGFILE
 elif [ -f $HOME/.ssh/${IDRSA}.pub ] && [ -f $HOME/.ssh/${IDRSA} ]; then
 	echo "Use the local key pair that already exists"                | tee -a $LOGFILE
 	continue
@@ -162,25 +164,39 @@ else
     rm -f $PRIVATE_KEY                                               | tee -a $LOGFILE
     rm -f $PUBLIC_KEY                                                | tee -a $LOGFILE
     echo "Run ssh-keygen on local host with empty passphrase"        | tee -a $LOGFILE
-    echo "---------------------------------------------" | tee -a $LOGFILE
+    echo "+-------------------------------------------+" | tee -a $LOGFILE
+    echo "|               ssh-keygen                  |" | tee -a $LOGFILE
+    echo "+-------------------------------------------+" | tee -a $LOGFILE
     $SSH_KEYGEN -t $KEYTYPE -b $BITS -f $HOME/.ssh/${IDRSA} -N ''    | tee -a $LOGFILE
-    echo "---------------------------------------------" | tee -a $LOGFILE
 fi
-#!------------------------------------!#
-#            remote pair               #
-#!------------------------------------!#
+echo "+-------------------------------------------+" | tee -a $LOGFILE
+echo "|          Configure remote SSH             |" | tee -a $LOGFILE
+echo "+-------------------------------------------+" | tee -a $LOGFILE
 echo "[1]Creating .ssh directory and setting permissions on remote host $HOST"    | tee -a $LOGFILE
-echo "[2]Add local public key to ~/.ssh/authorized_keys of remote host $HOST" | tee -a $LOGFILE
+echo "[2]Add local public key to ~/.ssh/authorized_keys of remote host $HOST"     | tee -a $LOGFILE
 echo "The user may be prompted for a password here"                               | tee -a $LOGFILE
-echo "---------------------------------------------" | tee -a $LOGFILE
 $SSH -p $PORT -o StrictHostKeyChecking=no -x -l $USR $HOST "/bin/sh -c \"  mkdir -p .ssh ; chmod og-w . .ssh;   touch .ssh/authorized_keys .ssh/known_hosts;  chmod 644 .ssh/authorized_keys  .ssh/known_hosts; cp  .ssh/authorized_keys .ssh/authorized_keys.tmp ;  cp .ssh/known_hosts .ssh/known_hosts.tmp;echo `cat $PUBLIC_KEY` >> .ssh/authorized_keys; echo \\"Host *\\" > .ssh/config.tmp; echo \\"ForwardX11 no\\" >> .ssh/config.tmp; if test -f  .ssh/config ; then cp -f .ssh/config .ssh/config.backup; fi ; mv -f .ssh/config.tmp .ssh/config\""
-echo "---------------------------------------------" | tee -a $LOGFILE
+
 if [ $? -eq 0 ]; then
 	echo "Done with [1]creating .ssh directory and setting permissions on remote host $host"   | tee -a $LOGFILE
-	echo "Done with [2]adding local public key to ~/.ssh/authorized_keys of remote host $host" | tee -a $LOGFILE
+	echo "Done with [2]adding local public key to ~/.ssh/authorized_keys on remote host $host" | tee -a $LOGFILE
 else
+	echo "$SSH failed"
 	exit 1
 fi
+#!------------------------------------!#
+#              verify                  #
+#!------------------------------------!#
+echo "+-------------------------------------------+" | tee -a $LOGFILE
+echo "|             Verify SSH setup              |" | tee -a $LOGFILE
+echo "+-------------------------------------------+" | tee -a $LOGFILE
+echo "Run 'date' command on the remote host using ssh to verify if ssh is setup correctly"   | tee -a $LOGFILE
+echo "! IF THE SETUP IS CORRECTLY, THERE SHOULD BE ****NO OUTPUT OTHER THAN THE DATE****"  | tee -a $LOGFILE
+echo "" | tee -a $LOGFILE
+$SSH -l $USR $HOST "/bin/sh -c date"  | tee -a $LOGFILE
+echo "" | tee -a $LOGFILE
+echo "Verification complete, bye" | tee -a $LOGFILE
+
 
 
 
