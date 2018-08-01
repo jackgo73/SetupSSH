@@ -12,6 +12,8 @@ IDRSA=id_rsa
 BITS=1024
 KEYTYPE="rsa"
 PORT=22
+PUBLIC_KEY=$HOME/.ssh/${IDRSA}.pub
+PRIVATE_KEY=$HOME/.ssh/${IDRSA}
 
 LOGFILE=/tmp/SetupSSH_`date +%F-%H-%M-%S`.log
 
@@ -146,8 +148,8 @@ chmod 644 $HOME/.ssh/config                                          | tee -a $L
 
 if [ $NEW_LOCAL_PAIR = true ]; then
 	echo "Remove old key pair on local host"                         | tee -a $LOGFILE
-    rm -f $HOME/.ssh/${IDRSA}                                        | tee -a $LOGFILE
-    rm -f $HOME/.ssh/${IDRSA}.pub                                    | tee -a $LOGFILE
+    rm -f $PRIVATE_KEY                                               | tee -a $LOGFILE
+    rm -f $PUBLIC_KEY                                                | tee -a $LOGFILE
     echo "Run ssh-keygen on local host with empty passphrase"        | tee -a $LOGFILE
     echo "---------------------------------------------" | tee -a $LOGFILE
     $SSH_KEYGEN -t $KEYTYPE -b $BITS -f $HOME/.ssh/${IDRSA} -N ''    | tee -a $LOGFILE
@@ -157,8 +159,8 @@ elif [ -f $HOME/.ssh/${IDRSA}.pub ] && [ -f $HOME/.ssh/${IDRSA} ]; then
 	continue
 else
 	echo "Key pair is missing, create new one on local host"         | tee -a $LOGFILE
-    rm -f $HOME/.ssh/${IDRSA}                                        | tee -a $LOGFILE
-    rm -f $HOME/.ssh/${IDRSA}.pub                                    | tee -a $LOGFILE
+    rm -f $PRIVATE_KEY                                               | tee -a $LOGFILE
+    rm -f $PUBLIC_KEY                                                | tee -a $LOGFILE
     echo "Run ssh-keygen on local host with empty passphrase"        | tee -a $LOGFILE
     echo "---------------------------------------------" | tee -a $LOGFILE
     $SSH_KEYGEN -t $KEYTYPE -b $BITS -f $HOME/.ssh/${IDRSA} -N ''    | tee -a $LOGFILE
@@ -167,14 +169,18 @@ fi
 #!------------------------------------!#
 #            remote pair               #
 #!------------------------------------!#
-echo "Creating .ssh directory and setting permissions on remote host $host" | tee -a $LOGFILE
-echo "The user may be prompted for a password here"                         | tee -a $LOGFILE
+echo "[1]Creating .ssh directory and setting permissions on remote host $HOST"    | tee -a $LOGFILE
+echo "[2]Add local public key to ~/.ssh/authorized_keys of remote host $HOST" | tee -a $LOGFILE
+echo "The user may be prompted for a password here"                               | tee -a $LOGFILE
 echo "---------------------------------------------" | tee -a $LOGFILE
-$SSH -p $PORT -o StrictHostKeyChecking=no -x -l $USR $HOST "/bin/sh -c \"  mkdir -p .ssh ; chmod og-w . .ssh;   touch .ssh/authorized_keys .ssh/known_hosts;  chmod 644 .ssh/authorized_keys  .ssh/known_hosts; cp  .ssh/authorized_keys .ssh/authorized_keys.tmp ;  cp .ssh/known_hosts .ssh/known_hosts.tmp; echo \\"Host *\\" > .ssh/config.tmp; echo \\"ForwardX11 no\\" >> .ssh/config.tmp; if test -f  .ssh/config ; then cp -f .ssh/config .ssh/config.backup; fi ; mv -f .ssh/config.tmp .ssh/config\""
+$SSH -p $PORT -o StrictHostKeyChecking=no -x -l $USR $HOST "/bin/sh -c \"  mkdir -p .ssh ; chmod og-w . .ssh;   touch .ssh/authorized_keys .ssh/known_hosts;  chmod 644 .ssh/authorized_keys  .ssh/known_hosts; cp  .ssh/authorized_keys .ssh/authorized_keys.tmp ;  cp .ssh/known_hosts .ssh/known_hosts.tmp;echo `cat $PUBLIC_KEY` >> .ssh/authorized_keys; echo \\"Host *\\" > .ssh/config.tmp; echo \\"ForwardX11 no\\" >> .ssh/config.tmp; if test -f  .ssh/config ; then cp -f .ssh/config .ssh/config.backup; fi ; mv -f .ssh/config.tmp .ssh/config\""
 echo "---------------------------------------------" | tee -a $LOGFILE
 if [ $? -eq 0 ]; then
-	echo "Done with creating .ssh directory and setting permissions on remote host $host" | tee -a $LOGFILE
+	echo "Done with [1]creating .ssh directory and setting permissions on remote host $host"   | tee -a $LOGFILE
+	echo "Done with [2]adding local public key to ~/.ssh/authorized_keys of remote host $host" | tee -a $LOGFILE
 else
 	exit 1
 fi
+
+
 
